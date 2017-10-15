@@ -100,7 +100,6 @@ three_states = []
 three_states.append(get_state_data("Arkansas"))
 three_states.append(get_state_data("California"))
 three_states.append(get_state_data("Michigan"))
-print(len(three_states))
 
 # Result of a following try/except block should be that
 # there exist 3 files -- arkansas_data.html, california_data.html, michigan_data.html
