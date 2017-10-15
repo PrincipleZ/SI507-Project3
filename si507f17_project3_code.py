@@ -179,6 +179,37 @@ print(len(three_states))
 # sample_inst = NationalSite(soup_park_inst)
 # f.close()
 
+
+class NationalSite(object):
+
+    def __init__(self, soupObject):
+        generalSoup = soupObject.find_all("div")[0]
+        self.location = generalSoup.h3.h4
+        self.name = generalSoup.h3.text
+        self.type = generalSoup.h2
+        self.description = generalSoup.p.text
+        infoSoup = soupObject.find_all("div")[1].find_all("div")[1]
+        infoList = infoSoup.find_all("a")
+        self.infoUrl = ""
+        for i in infoList:
+            if "Basic" in i.text:
+                self.infoUrl = i["href"]
+
+    def __str__(self):
+        return self.name + " | " + self.location
+
+    def get_mailing_address(self):
+        mailingSoup = BeautifulSoup(
+            get_and_cache(
+                self.infoUrl,
+                self.name +
+                "_info.html"),
+            "html.parser")
+        print(mailingSoup.prettify())
+
+test = NationalSite(three_states[0].find_all("li", {"class": "clearfix"})[0])
+test.get_mailing_address()
+
 ######### PART 3 #########
 
 # Create lists of NationalSite objects for each state's parks.
