@@ -1,6 +1,9 @@
 from bs4 import BeautifulSoup
 import unittest
 import requests
+import csv
+import os
+
 
 #########
 # Instr note: the outline comments will stay as suggestions, otherwise it's too difficult.
@@ -184,10 +187,10 @@ class NationalSite(object):
 
     def __init__(self, soupObject):
         generalSoup = soupObject.find_all("div")[0]
-        self.location = generalSoup.h3.h4
+        self.location = generalSoup.h4.text
         self.name = generalSoup.h3.text
-        self.type = generalSoup.h2
-        self.description = generalSoup.p.text
+        self.type = generalSoup.h2.text
+        self.description = generalSoup.p.text.replace("\n", "")
         infoSoup = soupObject.find_all("div")[1].find_all("div")[1]
         infoList = infoSoup.find_all("a")
         self.infoUrl = ""
@@ -199,16 +202,25 @@ class NationalSite(object):
         return self.name + " | " + self.location
 
     def get_mailing_address(self):
+        if not os.path.exists("park_cache/"):
+            os.makedirs("park_cache/")
         mailingSoup = BeautifulSoup(
             get_and_cache(
                 self.infoUrl,
-                self.name +
+                "park_cache/" + self.name +
                 "_info.html"),
             "html.parser")
-        print(mailingSoup.prettify())
+        address_div = mailingSoup.find("div", {"class": "mailing-address"})
+        address_text = address_div.find("p", {"class": "adr"}).text
+        address_text = address_text.strip().replace("\n", "/").replace("///", "/")
+        return address_text
+
+    def __contains__(self, name):
+        return name in self.name
+
 
 test = NationalSite(three_states[0].find_all("li", {"class": "clearfix"})[0])
-test.get_mailing_address()
+
 
 ######### PART 3 #########
 
@@ -225,6 +237,27 @@ test.get_mailing_address()
 # for m in michigan_natl_sites:
 # 	print(m)
 
+arkansas_natl_sites = []
+california_natl_sites = []
+michigan_natl_sites = []
+
+ar_list = three_states[0].find("ul", {"id": "list_parks"}) \
+    .find_all("li", {"class": "clearfix"})
+ca_list = three_states[1].find("ul", {"id": "list_parks"}) \
+    .find_all("li", {"class": "clearfix"})
+mi_list = three_states[2].find("ul", {"id": "list_parks"}) \
+    .find_all("li", {"class": "clearfix"})
+
+for i in ar_list:
+    arkansas_natl_sites.append(NationalSite(i))
+
+for i in ca_list:
+    california_natl_sites.append(NationalSite(i))
+
+for i in mi_list:
+    michigan_natl_sites.append(NationalSite(i))
+
+
 ######### PART 4 #########
 
 # Remember the hints / things you learned from Project 2 about writing CSV
@@ -238,3 +271,37 @@ test.get_mailing_address()
 # Also remember that IF you have None values that may occur, you might run
 # into some problems and have to debug for where you need to put in some
 # None value / error handling!
+def toDict(park):
+    returnDict = {"Name": park.name, "Location": park.location,
+                  "Type": park.type, "Address": park.get_mailing_address(),
+                  "Description": park.description}
+    for keys in returnDict:
+        if returnDict[keys] == "":
+            returnDict[keys] = "None"
+    return returnDict
+
+
+def toCSV(filename, inputList):
+    if not os.path.isfile(filename):
+        with open(filename, "w", newline="", encoding='utf-8') as f:
+            fieldnames = ["Name", "Location", "Type", "Address", "Description"]
+            writer = csv.DictWriter(f, fieldnames=fieldnames)
+            writer.writeheader()
+            for item in inputList:
+                writer.writerow(toDict(item))
+    else:
+        current_name_list = []
+        with open(filename, encoding='utf-8') as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                current_name_list.append(row["Name"])
+        with open(filename, "a", newline="", encoding='utf-8') as f:
+            fieldnames = ["Name", "Location", "Type", "Address", "Description"]
+            writer = csv.DictWriter(f, fieldnames=fieldnames)
+            for item in inputList:
+                if str(item.name) not in current_name_list:
+                    writer.writerow(toDict(item))
+
+toCSV("arkansas.csv", arkansas_natl_sites)
+toCSV("california.csv", california_natl_sites)
+toCSV("michigan.csv", michigan_natl_sites)
