@@ -217,10 +217,6 @@ class NationalSite(object):
     def __contains__(self, name):
         return name in self.name
 
-
-test = NationalSite(three_states[0].find_all("li", {"class": "clearfix"})[0])
-
-
 ######### PART 3 #########
 
 # Create lists of NationalSite objects for each state's parks.
